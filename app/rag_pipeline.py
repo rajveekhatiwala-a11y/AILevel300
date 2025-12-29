@@ -29,9 +29,10 @@ from azure.core.credentials import AzureKeyCredential
 from langchain_openai import AzureChatOpenAI, AzureOpenAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores.azuresearch import AzureSearch
-from langchain_core.prompts import PromptTemplate
-from langchain.chains import RetrievalQA
-from langchain.docstore.document import Document
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.documents import Document
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import RunnablePassthrough
 
 from app.config import settings
 from app.document_loader import DocumentLoader
@@ -84,6 +85,7 @@ class RAGPipeline:
         # Vector store will be initialized during ingestion
         self.vector_store = None
         self.qa_chain = None
+        self.retriever = None
         
         logger.info("RAG Pipeline initialized with LangChain")
     
@@ -228,22 +230,23 @@ Question: {question}
 
 Provide a clear, detailed answer based on the context. Always cite the sources you used."""
             
-            PROMPT = PromptTemplate(
-                template=prompt_template,
-                input_variables=["context", "question"]
+            prompt = ChatPromptTemplate.from_template(prompt_template)
+            
+            # Create retriever - use default settings to avoid k conflict
+            retriever = self.vector_store.as_retriever()
+            
+            # Create the chain using LCEL (LangChain Expression Language)
+            def format_docs(docs):
+                return "\n\n".join([doc.page_content for doc in docs])
+            
+            self.qa_chain = (
+                {"context": retriever | format_docs, "question": RunnablePassthrough()}
+                | prompt
+                | self.llm
+                | StrOutputParser()
             )
             
-            # Create RetrievalQA chain
-            self.qa_chain = RetrievalQA.from_chain_type(
-                llm=self.llm,
-                chain_type="stuff",
-                retriever=self.vector_store.as_retriever(
-                    search_type="hybrid",
-                    search_kwargs={"k": self.settings.top_k_results}
-                ),
-                chain_type_kwargs={"prompt": PROMPT},
-                return_source_documents=True
-            )
+            self.retriever = retriever  # Store retriever for source documents
             
             logger.info("QA chain created successfully")
             
@@ -282,12 +285,15 @@ Provide a clear, detailed answer based on the context. Always cite the sources y
             # Initialize vector store if not already done
             self._init_vector_store_for_query()
             
-            # Run the QA chain
-            result = self.qa_chain({"query": question})
+            # Get relevant documents directly from vector store using hybrid search
+            source_documents = self.vector_store.similarity_search(
+                query=question, 
+                k=self.settings.top_k_results,
+                search_type="hybrid"
+            )
             
-            # Extract answer and sources
-            answer = result['result']
-            source_documents = result.get('source_documents', [])
+            # Run the QA chain
+            answer = self.qa_chain.invoke(question)
             
             # Extract unique sources from metadata
             sources = list(set([
