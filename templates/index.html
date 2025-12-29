@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enterprise RAG Document Q&A System</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1>🔍 Enterprise Document Q&A</h1>
+                <p class="subtitle">Intelligent Document Search powered by Azure AI & RAG</p>
+            </div>
+            <div class="status-indicator" id="statusIndicator">
+                <span class="status-dot"></span>
+                <span class="status-text">Ready</span>
+            </div>
+        </header>
+
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <button class="btn btn-primary" id="ingestBtn" onclick="ingestDocuments()">
+                📁 Ingest Documents
+            </button>
+            <button class="btn btn-secondary" id="configBtn" onclick="showConfig()">
+                ⚙️ Configuration
+            </button>
+            <div class="config-status" id="configStatus"></div>
+        </div>
+
+        <!-- Sample Queries -->
+        <div class="sample-queries">
+            <h3>💡 Sample Queries:</h3>
+            <div class="query-chips">
+                <button class="chip" onclick="askQuestion('What is the company vacation policy?')">Vacation Policy</button>
+                <button class="chip" onclick="askQuestion('How do I submit an expense report?')">Expense Report</button>
+                <button class="chip" onclick="askQuestion('What are the requirements for remote work?')">Remote Work</button>
+                <button class="chip" onclick="askQuestion('What is the process for requesting time off?')">Time Off Process</button>
+                <button class="chip" onclick="askQuestion('What are the company core values?')">Core Values</button>
+            </div>
+        </div>
+
+        <!-- Chat Interface -->
+        <div class="chat-container">
+            <div class="chat-messages" id="chatMessages">
+                <div class="welcome-message">
+                    <h2>👋 Welcome to the Enterprise Document Q&A System</h2>
+                    <p>Ask questions about company policies, procedures, and documentation.</p>
+                    <ul>
+                        <li>Start by ingesting documents using the button above</li>
+                        <li>Then ask any question about your enterprise documents</li>
+                        <li>Get AI-powered answers with source citations</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <div class="input-area">
+                <div class="input-container">
+                    <textarea 
+                        id="questionInput" 
+                        placeholder="Ask a question about your documents..."
+                        rows="2"
+                        onkeydown="handleKeyPress(event)"
+                    ></textarea>
+                    <button class="btn-send" id="sendBtn" onclick="submitQuestion()">
+                        <span>Send</span>
+                        <span class="arrow">→</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Modal -->
+    <div class="modal" id="loadingModal">
+        <div class="modal-content">
+            <div class="loader"></div>
+            <p id="loadingText">Processing...</p>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
